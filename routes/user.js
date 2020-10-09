@@ -32,7 +32,7 @@ router.post('/', async (req, res, next) => {
         });
     } catch (e) {
 
-        // Cathc duplicate username attempts
+        // Catch duplicate username attempts
         if (/E11000.*username.* dup key.*/.test(e.message)) {
             res.status(400).send({error: "Username already exists"});
 

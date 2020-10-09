@@ -1,7 +1,8 @@
 const express = require('express');
 const app = express();
 const mongoose = require('mongoose');
-const userRoutes = require('./routes/user');
+const userRoute = require('./routes/user');
+const sessionsRoute = require('./routes/sessions');
 const swaggerUi = require('swagger-ui-express');
 const yaml = require('yamljs')
 const swaggerDocument = yaml.load('./docs/swagger.yaml');
@@ -14,7 +15,8 @@ app.use(express.json())
 app.use('/docs', swaggerUi.serve, swaggerUi.setup(swaggerDocument));
 
 // Attach routes
-app.use('/users', userRoutes);
+app.use('/users', userRoute);
+app.use('/sessions', sessionsRoute);
 
 mongoose.connect(process.env.DB_CONNECT,{
         useNewUrlParser: true,
