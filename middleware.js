@@ -1,5 +1,5 @@
 const mongoose = require('mongoose');
-const sessionModel = require('./models/Sessions');
+const Session = require('./models/Sessions');
 
 exports.verifyToken = async(req, res, next) => {
 
@@ -22,7 +22,7 @@ exports.verifyToken = async(req, res, next) => {
         return res.status(401).json({error: 'Invalid  token'})
     }
 
-    const session = await sessionModel.findOne({_id: authorizationHeader[1]});
+    const session = await Session.findOne({_id: authorizationHeader[1]});
 
     if (!session) return res.status(401).json({error: 'Invalid token'});
 

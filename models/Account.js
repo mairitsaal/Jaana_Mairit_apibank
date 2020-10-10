@@ -10,13 +10,12 @@ module.exports = mongoose.model('Account', Schema({
     },
     name: {type: String, required: true, min: 2, max: 255, default: 'Main'},
     balance: {type: Number, required: true, min: 0, default: 100000},
-    userId: {type: mongoose.Schema.Types.ObjectId, ref: 'user'},
+    userId: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
     currency: {type: String, required: true, default: 'EUR'}
 }, {
     // Transform id to _id
     toJSON: {
         transform: (docIn, docOut) => {
-            docOut.id = docOut._id
             delete docOut._id
             delete docOut.__v
             delete docOut.userId
