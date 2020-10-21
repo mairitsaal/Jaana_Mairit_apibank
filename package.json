@@ -17,6 +17,8 @@
     "mongoose": "^5.10.5",
     "morgan": "^1.10.0",
     "multer": "^1.4.2",
+    "node-fetch": "^2.6.1",
+    "node-jose": "^2.0.0",
     "nodemon": "^2.0.4",
     "swagger-ui-express": "^4.1.4"
   },
@@ -30,6 +32,7 @@
   },
   "homepage": "https://github.com/mairitsaal/Jaana_Mairit_apibank#readme",
   "devDependencies": {
+    "abort-controller": "^3.0.0",
     "docs": "^0.3.2-canary.0",
     "dotenv": "^8.2.0",
     "md5": "^2.3.0",
