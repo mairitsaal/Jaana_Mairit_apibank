@@ -1,7 +1,14 @@
 openapi: 3.0.2
 info:
-  title: Jaana_Mairit_apibank
+  title: JM_bank
   version: 1.0.0
+servers:
+  -
+    url: 'http://localhost:1234'
+    description: ''
+  -
+    url: 'http://jaanamairitbank.online'
+    description: ''
 paths:
   /users:
     post:
@@ -20,6 +27,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/userObject'
           description: User successfully registered.
+        '201':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/userObject'
+          description: User successfully created
         '400':
           content:
             application/json:
@@ -42,7 +55,7 @@ paths:
                 Username already exists:
                   value:
                     error: Username already exists
-          description: Username already exists
+          description: Username already exists.
       summary: Registers a new user
   /sessions:
     post:
@@ -70,6 +83,9 @@ paths:
                 Invalid username/password:
                   value:
                     error: Invalid username/password
+                Invalid token:
+                  value:
+                    error: Invalid token
           description: Invalid username/password
       summary: Logs the user in
     delete:
@@ -89,7 +105,7 @@ paths:
                     error: Missing Authorization header
                 Invalid token:
                   value:
-                    error: Invalid  token
+                    error: Invalid token
           description: Unauthorized
       security:
         -
@@ -105,7 +121,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/getUsersCurrentResponse'
-          description: Succesful request
+          description: Successful request
         '401':
           content:
             application/json:
@@ -117,14 +133,209 @@ paths:
                     error: Missing Authorization header
                 Invalid token:
                   value:
-                    error: Invalid  token
+                    error: Invalid token
           description: Unauthorized
       security:
         -
           Token: []
       summary: Returns currently logged in user's data
+  /transactions:
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/postTransactionsRequest'
+        required: true
+      tags:
+        - transactions
+      responses:
+        '201':
+          content:
+            application/json: {}
+          description: Transaction has been successfully queued for processing
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorResponse'
+              examples:
+                invalidAmount:
+                  value:
+                    error: Invalid amount
+                invalidAccountTo:
+                  value:
+                    error: Invalid accountTo
+          description: Invalid amount
+        '402':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorResponse'
+              examples:
+                insufficientFunds:
+                  value:
+                    error: Insufficient funds
+          description: Insufficient funds
+        '403':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorResponse'
+              examples:
+                forbidden:
+                  value:
+                    error: Forbidden
+          description: The accountFrom does not belong to the user
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorResponse'
+              examples:
+                accountNotFound:
+                  value:
+                    error: Account not found
+          description: Account not found
+      security:
+        -
+          Token: []
 components:
   schemas:
+    userObject:
+      title: user object
+      description: ''
+      type: object
+      properties:
+        id:
+          description: User's ID
+          type: string
+        name:
+          description: Users full name
+          type: string
+        username:
+          description: User's username
+          type: string
+        accounts:
+          description: Array of user's bank accounts
+          type: array
+          items:
+            $ref: '#/components/schemas/account'
+        password:
+          description: ''
+      example:
+        id: 5f912320dcb3ab606a54a1d1
+        name: Mairit
+        username: mairit
+        accounts:
+          -
+            name: Main
+            balance: '100000'
+            currency: EUR
+            number: 4833142578cef4a5ed30616246f8a34e02c
+    errorResponse:
+      title: error object
+      description: ''
+      type: object
+      properties:
+        error:
+          type: string
+      example:
+        error: Error message.
+    postSessionsRequest:
+      title: POST /sessions request
+      description: ''
+      type: object
+      properties:
+        password:
+          description: The password associated with given username
+          type: string
+        username:
+          description: 'A valid username '
+          type: string
+      example:
+        password: plutoonium
+        username: mairit
+    postSessionResponse:
+      title: POST /session response
+      description: ''
+      type: object
+      properties:
+        token:
+          description: >-
+            A session tokens wich needs to be sent back to server in Authorization header with
+            every request (Authorization: Bearer <token>)
+          type: string
+      example:
+        token: 5f91235ddcb3ab606a54a1d3
+    getUsersCurrentResponse:
+      title: GET /Users current response
+      description: ''
+      type: object
+      properties:
+        id:
+          type: string
+        name:
+          type: string
+        username:
+          type: string
+        accounts:
+          description: Array of user's accounts
+          type: array
+          items:
+            $ref: '#/components/schemas/account'
+      example:
+        id: 5f912320dcb3ab606a54a1d1
+        name: Mairit
+        username: mairit
+        accounts:
+          -
+            name: Main
+            balance: '100000'
+            currency: EUR
+            number: 4833142578cef4a5ed30616246f8a34e02c
+    account:
+      title: account object
+      description: ''
+      required: []
+      type: object
+      properties:
+        name:
+          type: string
+        balance:
+          type: integer
+        currency:
+          type: string
+        number:
+          type: string
+      example:
+        name: Main
+        balance: '100000'
+        currency: EUR
+        number: 4833142578cef4a5ed30616246f8a34e02c
+    postTransactionsRequest:
+      title: POST /transactions request
+      description: ''
+      type: object
+      properties:
+        accountFrom:
+          description: Sender's bank account
+          type: string
+        accountTo:
+          description: Receiver's bank account
+          type: string
+        amount:
+          format: int32
+          description: The sum
+          type: integer
+        explanation:
+          description: Purpose of the transaction
+          type: string
+      example:
+        accountFrom: 4833142578cef4a5ed30616246f8a34e02c
+        accountTo: b11b887e37a30e1a9658eafefb46dd3115a
+        amount: 10
+        explanation: Spend it wisely
     postUsersRequest:
       title: POST /users request
       description: ''
@@ -145,122 +356,9 @@ components:
           description: Desired password
           type: string
       example:
-        name: Jaana
-        username: lasu
-        password: kurimuri
-    userObject:
-      title: userObject
-      description: ''
-      type: object
-      properties:
-        accounts:
-          description: Array of user's bank accounts
-          type: array
-          items:
-            $ref: '#/components/schemas/account'
-        name:
-          description: User's full name
-          type: string
-        username:
-          type: string
-        password:
-          type: string
-        id:
-          description: User's ID
-          type: string
-      example:
-        id: 5f79c2269e019140b45be2e2
-        name: Jaana
-        username: jaana
-        accounts:
-          -
-            name: Main
-            balance: 100000
-            currency: EUR
-            userId: 5f79c2269e019140b45be2e2
-            number: abc5775a9d8c866de6cf89f70fd8b5b1771
-            id: 5f79c2269e019140b45be2e3
-    errorResponse:
-      title: errorResponse
-      description: ''
-      type: object
-      properties:
-        error:
-          type: string
-      example:
-        error: Error message
-    postSessionsRequest:
-      title: POST /sessions request
-      description: ''
-      type: object
-      properties:
-        username:
-          description: A valid username
-          type: string
-        password:
-          description: The password associated with given username
-          type: string
-      example:
-        username: lasu
-        password: kurimuri
-    postSessionResponse:
-      title: POST /sessions response
-      description: ''
-      type: object
-      properties:
-        token:
-          description: >-
-            A session token which needs to be sent back to server in Authorization header with
-            every request (Authorization: Bearer <token>)
-          type: string
-      example:
-        token: 5f7f55f8f703183820ec2ce6
-    getUsersCurrentResponse:
-      title: Root Type for getUsersCurrentResponse
-      description: ''
-      type: object
-      properties:
-        id:
-          type: string
-        name:
-          type: string
-        username:
-          type: string
-        accounts:
-          description: Array of user's accounts
-          type: array
-          items:
-            $ref: '#/components/schemas/account'
-      example:
-        id: 5f800978bda5b74f6423ba25
-        name: Jaana
-        username: lasu
-        accounts:
-          -
-            name: Main
-            balance: 100000
-            currency: EUR
-            number: abcbb509d401cfc45fd2f98620d5e99a4c5
-    account:
-      title: Root Type for account
-      description: ''
-      required:
-        - balance
-      type: object
-      properties:
-        name:
-          type: string
-        balance:
-          type: integer
-        currency:
-          type: string
-        number:
-          type: string
-      example:
-        name: Main
-        balance: 100000
-        currency: EUR
-        number: abcbb509d401cfc45fd2f98620d5e99a4c5
+        name: Mairit
+        username: mairit
+        password: plutoonium
   securitySchemes:
     Token:
       scheme: bearer
