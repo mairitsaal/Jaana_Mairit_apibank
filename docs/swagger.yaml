@@ -200,6 +200,73 @@ paths:
       security:
         -
           Token: []
+  /transaction/b2b:
+    post:
+      responses:
+        '200':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/postReceiverTransactionsResponse'
+              examples:
+                Receiver name:
+                  value:
+                    receiverName: Receiver name
+          description: Receiver'name
+        '400':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorResponse'
+              examples:
+                Parsing JWT payload failed:
+                  value:
+                    error: Parsing JWT payload failed
+                The bank not found in Central Bank:
+                  value:
+                    error: >-
+                      The account sending the funds does not belong to a bank registered
+                      in Central Bank
+                Cannot verify your signature:
+                  value:
+                    error: 'Cannot verify your signature: The jwkUrl of your bank is invalid'
+                Invalid signature:
+                  value:
+                    error: Invalid signature
+          description: Parsing JWT payload failed
+        '404':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorResponse'
+              examples:
+                Account not found:
+                  value:
+                    error: Account not found
+          description: Account not found
+        '500':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorResponse'
+              examples:
+                Cannot verify your signature:
+                  value:
+                    error: 'Cannot verify your signature: The jwksUrl of your bank is missing'
+          description: Cannot verify your signature
+        '502':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorResponse'
+              examples:
+                Central Bank error:
+                  value:
+                    error: sCentral Bank error
+          description: Central Bank error
+      security:
+        -
+          Token: []
 components:
   schemas:
     userObject:
@@ -359,6 +426,42 @@ components:
         name: Mairit
         username: mairit
         password: plutoonium
+    postReceiveTransactionsRequest:
+      description: ''
+      required: []
+      type: object
+      properties:
+        accountFrom:
+          description: Sender'bank account
+          type: string
+        accountTo:
+          description: Receiver's bank account
+          type: string
+        amount:
+          format: int32
+          description: The sum
+          type: integer
+        explanation:
+          description: Purpose of the transaction
+          type: string
+        currency:
+          description: Currency of transaction
+          type: string
+      example:
+        accountFrom: RU000000001
+        accountTo: BY000000002
+        amount: 15
+        currency: USD
+        explanation: Thank you mighty friend
+    postReceiverTransactionsResponse:
+      title: Root Type for postReceiverTransactionsResponse
+      description: ''
+      type: object
+      properties:
+        receiverName:
+          type: string
+      example:
+        receiverName: Jaana Lind
   securitySchemes:
     Token:
       scheme: bearer
