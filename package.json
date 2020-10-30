@@ -12,6 +12,7 @@
   "dependencies": {
     "bcrypt": "^5.0.0",
     "body-parser": "^1.19.0",
+    "exchange-rates-api": "^1.0.2",
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
     "mongoose": "^5.10.5",
@@ -33,6 +34,7 @@
   "homepage": "https://github.com/mairitsaal/Jaana_Mairit_apibank#readme",
   "devDependencies": {
     "abort-controller": "^3.0.0",
+    "axios": "^0.21.0",
     "docs": "^0.3.2-canary.0",
     "dotenv": "^8.2.0",
     "md5": "^2.3.0",
