@@ -63,7 +63,7 @@ router.post('/', verifyToken, async (req, res, next) => {
 
             // Check for destination bank once more
             if (!bankTo) {
-                return  res.status(400).json({error: "Invalid accountTo"});
+                return res.status(400).json({error: "Invalid accountTo"});
             }
         }
 
@@ -101,7 +101,7 @@ router.post('/b2b', async (req, res, next) => {
     try {
 
         // Get the middle part of JWT
-        const base64EncodedPayload =jwt.split('.')[1];
+        const base64EncodedPayload = jwt.split('.')[1];
 
         // Decode it and parse it to a transaction object
         transaction = JSON.parse(Buffer.from(base64EncodedPayload, 'base64').toString());
@@ -118,7 +118,7 @@ router.post('/b2b', async (req, res, next) => {
 
     // Verify accountTo
     if (!accountTo) {
-        return  res.status(404).json({error: 'Account not found'});
+        return res.status(404).json({error: 'Account not found'});
     }
 
     console.log('/b2b: Found this account: ' + JSON.stringify(accountTo));
@@ -160,7 +160,8 @@ router.post('/b2b', async (req, res, next) => {
             console.log('/b2b: Still didn\'t get the bank. Failing now');
 
             return res.status(400).json({
-                error: 'The account sending the funds does not belong to a bank registered in Central Bank'})
+                error: 'The account sending the funds does not belong to a bank registered in Central Bank'
+            })
         }
 
     }
@@ -171,7 +172,8 @@ router.post('/b2b', async (req, res, next) => {
     if (!bankFrom.jwksUrl) {
         console.log('/b2b: bankFrom does not have jwksUrl ' + JSON.stringify(bankFrom));
         return res.status(500).json({
-            error: 'Cannot verify your signature: The jwksUrl of your bank is missing'});
+            error: 'Cannot verify your signature: The jwksUrl of your bank is missing'
+        });
     }
 
     // Get bank's public key
@@ -241,7 +243,7 @@ router.post('/b2b', async (req, res, next) => {
         accountTo: transaction.accountTo,
         explanation: transaction.explanation,
         senderName: transaction.senderName,
-        receiverName: accountOwner.name,
+        receiverName: accountToOwner.name,
         status: 'completed'
     })
 
@@ -266,21 +268,23 @@ router.get('/jwks', async (req, res, next) => {
 
 })
 
-router.get('/', verifyToken, async(req, res, next) => {
+router.get('/', verifyToken, async (req, res, next) => {
 
-    try {
-        const user = await User.findOne({_id: req.userId})
+    const user = await User.findOne({_id: req.userId})
 
-        const transaction = await Transaction.find({userId: req.userId},{senderName: 1, accountFrom: 1, receiverName: 1, accountTo: 1, amount: 1, createdAt: 1, _id: 0});
-        console.log(transaction);
-        res.status(200).json({
-            senderName: user.name,
-            transactions: transaction
-        })
-    } catch (e) {
-        res.status(400).send({error: e.message});
-        console.log(e);
-
-    }
+    const transaction = await Transaction.find({userId: req.userId}, {
+        senderName: 1,
+        accountFrom: 1,
+        receiverName: 1,
+        accountTo: 1,
+        amount: 1,
+        createdAt: 1,
+        _id: 0
+    });
+    console.log(transaction);
+    res.status(200).send({
+        senderName: user.name,
+        transactions: transaction
+    })
 })
 module.exports = router;
