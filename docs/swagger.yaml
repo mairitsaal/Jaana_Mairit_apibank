@@ -140,6 +140,38 @@ paths:
           Token: []
       summary: Returns currently logged in user's data
   /transactions:
+    get:
+      tags:
+        - transactions
+      responses:
+        '200':
+          content:
+            application/json:
+              examples:
+                Transaction history:
+                  value:
+                    name: Mari Maasikas
+                    transactions:
+                      -
+                        senderName: Mari Maasikas
+                        accountFrom: 8b9a7cfefd4d642f9a6be0ca537f5b6ec83
+                        amount: 600
+                        accountTo: 8b9844e7ca913f1aae49e0223101068989e
+                        createdAt: '2020-10-26T21:01:25.057Z'
+                        receiverName: Karl Kaalikas
+                      -
+                        senderName: Mari Maasikas
+                        accountFrom: 8b9a7cfefd4d642f9a6be0ca537f5b6ec83
+                        amount: 1800
+                        accountTo: 8b9844e7ca913f1aae49e0223101068989e
+                        createdAt: '2020-10-26T09:24:40.289Z'
+                        receiverName: Karl Kaalikas
+          description: Transactions list received successfully.
+      security:
+        -
+          Token: []
+      summary: Get transactions.
+      description: Get list of transactions.
     post:
       requestBody:
         content:
@@ -202,6 +234,14 @@ paths:
           Token: []
   /transaction/b2b:
     post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/postReceiveTransactionsRequest'
+        required: true
+      tags:
+        - receive transactions
       responses:
         '200':
           content:
@@ -454,7 +494,7 @@ components:
         currency: USD
         explanation: Thank you mighty friend
     postReceiverTransactionsResponse:
-      title: Root Type for postReceiverTransactionsResponse
+      title: postReceiverTransactionsResponse
       description: ''
       type: object
       properties:

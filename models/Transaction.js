@@ -1,6 +1,4 @@
 const mongoose = require('mongoose');
-require('dotenv').config()
-
 module.exports = mongoose.model('Transaction', new mongoose.Schema({
     createdAt: {type: Date, required: true, default: Date.now},
     userId: {type: mongoose.Schema.Types.ObjectId, ref: 'User'},
@@ -9,14 +7,14 @@ module.exports = mongoose.model('Transaction', new mongoose.Schema({
     accountFrom: {type: String, required: true},
     accountTo: {type: String, required: true},
     explanation: {type: String, required: true, minlength: 1},
-    receiverName: {type: String, required: false},
     senderName: {type: String, required: true, minlength: 1},
-    status: {type: String, required: true, enum : ['pending', 'completed', 'inProgress', 'failed'],default: 'pending'},
+    receiverName: {type: String, required: false, minlength: 1},
+    status: {type: String, required: true, enum: ['pending', 'completed', 'inProgress', 'failed'], default: 'pending'},
     statusDetail: {type: String, required: false}
 }, {
     toJSON: {
         transform: function (docIn, docOut) {
-            docOut.id = docOut._id;
+            docOut.id = docOut._id
             delete docOut._id;
         }
     }

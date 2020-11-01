@@ -1,35 +1,25 @@
-const express = require('express');
-const router = express.Router();
+const router = require('express').Router();
 const bcrypt = require('bcrypt');
-const Users = require('../models/User');
+const User = require('../models/user');
 const Account = require('../models/Account');
-const { verifyToken } = require('../middleware')
-
-
+const {verifyToken} = require("../middleware");
 
 router.post('/', async (req, res, next) => {
 
-//Make sure credentials are given and correct
-    if(typeof req.body.name === "undefined" || req.body.name.length < 2 || req.body.name.length > 50) {
-        res.status(400).send({ error: "Invalid name" })
+    // Make sure the password is supplied
+    if (typeof req.body.password === "undefined" || req.body.password.length < 8) {
+        res.status(400).send({error: "Invalid password"})
+
+        // Stop the execution
         return
     }
 
-    if(typeof req.body.username === "undefined" || req.body.username.length < 2 || req.body.username.length > 50) {
-        res.status(400).send({ error: "Invalid username" })
-        return
-    }
-
-    if(typeof req.body.password === "undefined" || req.body.password.length < 8 || req.body.password.length > 255) {
-        res.status(400).send({ error: "Invalid password" })
-        return
-    }
     // Hash the password
     req.body.password = await bcrypt.hash(req.body.password, 10);
 
     try {
         // Create new user to DB
-        const user = await new Users(req.body).save();
+        const user = await new User(req.body).save();
 
         // Create new account for the user
         const account = await new Account({userId: user.id}).save();
@@ -60,7 +50,7 @@ router.get('/current', verifyToken, async(req, res, next) => {
 
     try {
         // Get user object from DB
-        const user = await Users.findOne({_id: req.userId})
+        const user = await User.findOne({_id: req.userId})
         console.log(user);
         // Get user's accounts
         const accounts = await Account.find({userId: req.userId});

@@ -1,34 +1,43 @@
 {
-  "name": "JM_bank",
+  "name": "createuser",
   "version": "1.0.0",
-  "description": "",
-  "main": "app.js",
+  "description": "createuser",
+  "main": "index.js",
   "scripts": {
-    "start": "nodemon -e yaml, js app.js"
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "nodemon -e yaml,js app.js"
   },
-  "author": "",
+  "author": "Jaana",
   "license": "ISC",
   "dependencies": {
-    "abort-controller": "^3.0.0",
-    "axios": "^0.21.0",
     "bcrypt": "^5.0.0",
     "body-parser": "^1.19.0",
-    "dotenv": "^8.2.0",
     "exchange-rates-api": "^1.0.2",
     "express": "^4.17.1",
     "jsonwebtoken": "^8.5.1",
-    "md5": "^2.3.0",
-    "mongodb": "^3.6.2",
-    "mongoose": "^5.10.9",
+    "mongoose": "^5.10.5",
     "morgan": "^1.10.0",
     "multer": "^1.4.2",
     "node-fetch": "^2.6.1",
     "node-jose": "^2.0.0",
     "nodemon": "^2.0.4",
-    "react-fetch": "0.0.9",
-    "swagger": "^0.7.5",
-    "swagger-ui-express": "^4.1.4",
-    "yaml": "^1.10.0",
+    "swagger-ui-express": "^4.1.4"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/mairitsaal/Jaana_Mairit_apibank.git"
+  },
+  "keywords": [],
+  "bugs": {
+    "url": "https://github.com/mairitsaal/Jaana_Mairit_apibank/issues"
+  },
+  "homepage": "https://github.com/mairitsaal/Jaana_Mairit_apibank#readme",
+  "devDependencies": {
+    "abort-controller": "^3.0.0",
+    "axios": "^0.21.0",
+    "docs": "^0.3.2-canary.0",
+    "dotenv": "^8.2.0",
+    "md5": "^2.3.0",
     "yamljs": "^0.3.0"
   }
 }
