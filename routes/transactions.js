@@ -54,7 +54,8 @@ router.post('/', verifyToken, async (req, res, next) => {
             // Log the error to transaction
             console.log('There was an error communicating with central bank:');
             console.log(result.error);
-            statusDetail = result.error;
+            statusDetail = JSON.stringify(result.error);
+
 
         } else {
 
@@ -95,7 +96,7 @@ router.post('/b2b', async (req, res, next) => {
     let transaction;
 
     // Get jwt from body
-    let jwt = req.body.jwt;
+    jwt = req.body.jwt;
 
     // Extract transaction from jwt (payload)
     try {
@@ -224,7 +225,7 @@ router.post('/b2b', async (req, res, next) => {
     }
 
     // Get accountTo owner's details
-    const accountOwner = await User.findOne({_id: accountTo.userId});
+    const accountToOwner = await User.findOne({_id: accountTo.userId});
 
     // Increase accountTo's balance
     console.log(`/b2b: Increasing ${accountToOwner.name}'s account ${accountTo.number} by ${amount / 100} ${accountTo.currency}`);
@@ -263,28 +264,15 @@ router.get('/jwks', async (req, res, next) => {
     await keystore.add(fs.readFileSync('./keys/private.key').toString(), 'pem');
 
     // Return our keystore (only public key derived from the imported private key) in JWKS format
-    console.log('/jwks: Exporting keystore and returing it');
+    console.log('/jwks: Exporting keystore and returning it');
     return res.send(keystore.toJSON());
 
 })
 
 router.get('/', verifyToken, async (req, res, next) => {
 
-    const user = await User.findOne({_id: req.userId})
+    const transactions = await Transaction.find({userId: req.userId});
 
-    const transaction = await Transaction.find({userId: req.userId}, {
-        senderName: 1,
-        accountFrom: 1,
-        receiverName: 1,
-        accountTo: 1,
-        amount: 1,
-        createdAt: 1,
-        _id: 0
-    });
-    console.log(transaction);
-    res.status(200).send({
-        senderName: user.name,
-        transactions: transaction
-    })
+    res.status(200).json(transactions);
 })
 module.exports = router;

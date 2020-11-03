@@ -4,10 +4,10 @@ const Transaction = require('./models/Transaction');
 const Account = require('./models/Account');
 const Bank = require('./models/Bank');
 const fetch = require('node-fetch');
+const axios = require('axios');
 const jose = require('node-jose');
 const fs = require('fs');
 
-const abortController = require('abort-controller');
 require('dotenv').config();
 
 exports.verifyToken = async (req, res, next) => {
@@ -32,7 +32,6 @@ exports.verifyToken = async (req, res, next) => {
     }
 
     const session = await Session.findOne({_id: authorizationHeader[1]});
-
     if (!session) return res.status(401).json({error: 'Invalid token'});
 
     // Write user's id into req
@@ -41,12 +40,6 @@ exports.verifyToken = async (req, res, next) => {
     return next(); // Pass the request to the next middleware
 }
 exports.processTransactions = async () => {
-
-    let serverResponseAsJson,
-        serverResponseAsPlainText,
-        serverResponseAsObject,
-        timeout,
-        bankTo;
 
     // Init jose keystore
     const privateKey = fs.readFileSync('./keys/private.key').toString();
@@ -58,6 +51,10 @@ exports.processTransactions = async () => {
 
     // Loop through each transaction and send a request
     pendingTransactions.forEach(async transaction => {
+
+        let oServerResponse,
+            timeout,
+            bankTo;
 
         console.log('loop: Processing transaction...');
 
@@ -77,12 +74,6 @@ exports.processTransactions = async () => {
 
             // Go to next transaction
             return;
-        }
-
-        // Bundle together status and its abortController
-        const transactionData = {
-            transaction,
-            abortController: new abortController()
         }
 
         //Set transaction status to in progress
@@ -145,80 +136,105 @@ exports.processTransactions = async () => {
         // Send request to remote bank
         try {
 
-            console.log('loop: Making request to ' + bankTo.transactionUrl);
-
-            // Abort connection after 1 sec
-            timeout = setTimeout(() => {
-                console.log('loop: Abort long-running transaction');
-
-                //Abort the request
-                transactionData.abortController.abort();
-
-                // Set transaction status back to pending
-                transaction.status = 'pending';
-                transaction.statusDetail = 'Server is not responding';
-                transaction.save();
-
-            }, 1000)
-
             // Actually send the request
-            serverResponseAsObject = await fetch(bankTo.transactionUrl, {
-                signal: transactionData.abortController.signal,
-                method: 'POST',
-                body: JSON.stringify({jwt}),
-                headers: {
-                    'Content-Type': 'application/json'
-                }
-            })
+            oServerResponse = await axios.post(bankTo.transactionUrl,{jwt}, {timeout:2000});
 
-            // Get server response as plain text
-            serverResponseAsPlainText = await serverResponseAsObject.text();
+            // Debug log
+            console.log('loop: Made request to ' + bankTo.transactionUrl +':');
+            console.log(
+                'POST ' + (new URL(bankTo.transactionUrl)).pathname + '\n'
+                + Object.entries(oServerResponse.config.headers).map((h) => h[0] + ': ' + h[1]).join("\n")
+                + '\n\n'
+                + JSON.stringify({jwt}, null, 4))
+
         } catch (e) {
             console.log('loop: Making request to another bank failed with the following message: ' + e.message);
+
+            let url = e.response.config.url
+            let request = e.request._header + e.response.config.data;
+            let responseFirstLine = e.response.status + ' ' + e.response.statusText
+            let responseHeaders = Object.entries(e.response.headers).map((h) => h[0] + ': ' + h[1]).join("\n")
+            let responseBody = JSON.stringify(e.response.data)
+
+            let errorText =
+                '\nWhile making this request to ' + url + ':\n'
+                + '\n---BEGIN REQUEST---\n'
+                + request
+                + '\n---END REQUEST---\n'
+                + '\nThe following response was given:\n'
+                + '\n---BEGIN RESPONSE---\n'
+                + responseFirstLine + "\n"
+                + responseHeaders + "\n"
+                + "\n"
+                + responseBody
+                + '\n---END RESPONSE---\n'
+
+            console.log(errorText)
+
+            transaction.status = 'failed';
+            transaction.statusDetail = errorText;
+            transaction.save();
+            return;
         }
 
         // Cancel aborting
         clearTimeout(timeout);
 
-        // Server did not respond (we aborted before that)
-        if (typeof serverResponseAsPlainText === 'undefined') {
+        // Print friendly error messages if something is missing:
+        if (!oServerResponse) {
+            console.log('loop: Unable to get server response');
+        }
+        if (!oServerResponse.status) {
+            console.log('loop: Unable to get status from server response');
+        } else {
+            console.log('loop: Server response status was ' + oServerResponse.status);
+        }
+        if (!oServerResponse.data) {
+            console.log('loop: Unable to get body from server response');
+        } else {
+            console.log('loop: Server response was:');
+            console.log(oServerResponse.status + ' ' + oServerResponse.statusText);
+            console.log(Object.entries(oServerResponse.request.res.headers).map((h) => h[0] + ': ' + h[1]).join("\n"));
+            console.log('');
+            console.log(oServerResponse.data);
+        }
+        if (!oServerResponse.data.receiverName) {
+            console.log('loop: Unable to get receiverName from server response body');
+        } else {
+            console.log('loop: receiverName was ' + oServerResponse.data.receiverName);
+        }
 
-            // Stop processing this transaction for now and take the next one
+        // Log bad responses from server to transaction statusDetail (including missing receiverName property)
+        if (oServerResponse.status < 200 || oServerResponse.status >= 300) {
+            console.log('loop: Server response status was not positive. Setting transaction status fo failed');
+            transaction.status = 'failed'
+            transaction.statusDetail = typeof oServerResponse.data.error !== 'undefined' ?
+                oServerResponse.data.error : JSON.stringify(oServerResponse.data)
+            transaction.save()
             return
         }
 
-        // Attempt to parse server response from text to JSON
-
-        try {
-            serverResponseAsJson = JSON.parse(serverResponseAsPlainText)
-
-        } catch (e) {
-
-            // Log the error
-            console.log('loop: ' + e.message + ". Response was: " + serverResponseAsPlainText);
-            transaction.status = 'failed';
-            transaction.statusDetail = 'The other bank said ' + serverResponseAsPlainText;
-            transactionData.abortController = null;
-            transaction.save();
-
-            // Go to next transaction
+        if (!oServerResponse.data) {
+            console.log('loop: Server did not return JSON or the content-type was not json');
+            transaction.status = 'failed'
+            transaction.statusDetail = 'No JSON in response. The response was: ' + oServerResponse.data
+            transaction.save()
             return
         }
 
-        // Log bad responses from server to transaction statusDetail
-        if (serverResponseAsObject.status < 200 || serverResponseAsObject.status >= 300) {
-            console.log('loop: Server response was: ' + serverResponseAsObject.status);
+        if (!oServerResponse.data.receiverName) {
+            console.log('loop: Server response did not have receiverName. It was: ' + oServerResponse.data);
             transaction.status = 'failed';
-            transaction.statusDetail = typeof serverResponseAsJson.error !== 'undefined' ? serverResponseAsJson.error : serverResponseAsPlainText;
+            transaction.statusDetail = typeof oServerResponse.data.error !== 'undefined' ? oServerResponse.data.error : JSON.stringify(oServerResponse.data);
             transaction.save();
-            return
+            return;
         }
 
         // Add receiverName to transaction
-        transaction.receiverName = serverResponseAsJson.receiverName;
+        transaction.receiverName = oServerResponse.data.receiverName;
 
         // Deduct accountFrom
-        account = await Account.findOne({number: transaction.accountFrom});
+        const account = await Account.findOne({number: transaction.accountFrom});
         account.balance = account.balance - transaction.amount;
         account.save();
 
@@ -237,17 +253,21 @@ exports.processTransactions = async () => {
 };
 /**
  * Refreshes the list of known banks from Central Bank
- * @returns {Promise<{error: *}>}
+ * @returns void
  */
 exports.refreshBanksFromCentralBank = async () => {
+
     try {
+
         console.log('Refreshing banks');
 
         console.log('Attempting to contact central bank at ' + `${process.env.CENTRAL_BANK_URL}/banks`)
-        let banks = await fetch(`${process.env.CENTRAL_BANK_URL}/banks`, {
+        banks = await fetch(`${process.env.CENTRAL_BANK_URL}/banks`, {
             headers: {'Api-Key': process.env.CENTRAL_BANK_API_KEY}
         })
             .then(responseText => responseText.json());
+
+        console.log('refreshBanksFromCentralBank: CB response was: ' + JSON.stringify(banks));
 
         // Delete all old banks
         await Bank.deleteMany();
@@ -264,6 +284,8 @@ exports.refreshBanksFromCentralBank = async () => {
         await bulk.execute();
 
     } catch (e) {
+        console.log('Failed to communicate with the central bank');
+        console.log(e.message);
         return {error: e.message};
     }
     return true;
