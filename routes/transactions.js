@@ -98,7 +98,6 @@ router.post('/b2b', async (req, res, next) => {
     // Get jwt from body
     jwt = req.body.jwt;
 
-    // Extract transaction from jwt (payload)
     try {
 
         // Get the middle part of JWT

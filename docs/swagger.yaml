@@ -7,7 +7,7 @@ servers:
     url: 'http://localhost:1234'
     description: ''
   -
-    url: 'http://jaanamairitbank.online'
+    url: 'https://jaanamairitbank.online'
     description: ''
 paths:
   /users:
@@ -147,26 +147,19 @@ paths:
         '200':
           content:
             application/json:
-              examples:
-                Transaction history:
-                  value:
-                    name: Mari Maasikas
-                    transactions:
-                      -
-                        senderName: Mari Maasikas
-                        accountFrom: 8b9a7cfefd4d642f9a6be0ca537f5b6ec83
-                        amount: 600
-                        accountTo: 8b9844e7ca913f1aae49e0223101068989e
-                        createdAt: '2020-10-26T21:01:25.057Z'
-                        receiverName: Karl Kaalikas
-                      -
-                        senderName: Mari Maasikas
-                        accountFrom: 8b9a7cfefd4d642f9a6be0ca537f5b6ec83
-                        amount: 1800
-                        accountTo: 8b9844e7ca913f1aae49e0223101068989e
-                        createdAt: '2020-10-26T09:24:40.289Z'
-                        receiverName: Karl Kaalikas
+              schema:
+                $ref: '#/components/schemas/getTransactionResponse'
           description: Transactions list received successfully.
+        '401':
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/errorResponse'
+              examples:
+                Invalid token:
+                  value:
+                    error: Invalid token
+          description: Invalid token
       security:
         -
           Token: []
@@ -238,21 +231,21 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/postReceiveTransactionsRequest'
+              $ref: '#/components/schemas/postTransactionsB2bRequest'
         required: true
       tags:
-        - receive transactions
+        - transactions
       responses:
         '200':
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/postReceiverTransactionsResponse'
+                $ref: '#/components/schemas/postTransactionsB2bResponse'
               examples:
                 Receiver name:
                   value:
-                    receiverName: Receiver name
-          description: Receiver'name
+                    receiverName: Jaana Šeffer
+          description: Transfer accepted
         '400':
           content:
             application/json:
@@ -273,7 +266,7 @@ paths:
                 Invalid signature:
                   value:
                     error: Invalid signature
-          description: Parsing JWT payload failed
+          description: Bad request
         '404':
           content:
             application/json:
@@ -302,11 +295,9 @@ paths:
               examples:
                 Central Bank error:
                   value:
-                    error: sCentral Bank error
+                    error: Central Bank error
           description: Central Bank error
-      security:
-        -
-          Token: []
+      summary: Accepts new transaction from anoher bank
 components:
   schemas:
     userObject:
@@ -339,7 +330,7 @@ components:
             name: Main
             balance: '100000'
             currency: EUR
-            number: 4833142578cef4a5ed30616246f8a34e02c
+            number: 907aea8e0784cbdbc0b4da59293eaaf8906
     errorResponse:
       title: error object
       description: ''
@@ -400,7 +391,7 @@ components:
             name: Main
             balance: '100000'
             currency: EUR
-            number: 4833142578cef4a5ed30616246f8a34e02c
+            number: 907aea8e0784cbdbc0b4da59293eaaf8906
     account:
       title: account object
       description: ''
@@ -419,7 +410,7 @@ components:
         name: Main
         balance: '100000'
         currency: EUR
-        number: 4833142578cef4a5ed30616246f8a34e02c
+        number: 907aea8e0784cbdbc0b4da59293eaaf8906
     postTransactionsRequest:
       title: POST /transactions request
       description: ''
@@ -439,8 +430,8 @@ components:
           description: Purpose of the transaction
           type: string
       example:
-        accountFrom: 4833142578cef4a5ed30616246f8a34e02c
-        accountTo: b11b887e37a30e1a9658eafefb46dd3115a
+        accountFrom: 907aea8e0784cbdbc0b4da59293eaaf8906
+        accountTo: 8b977313a54d6ddd72dec8209ea2452167b
         amount: 10
         explanation: Spend it wisely
     postUsersRequest:
@@ -466,42 +457,86 @@ components:
         name: Mairit
         username: mairit
         password: plutoonium
-    postReceiveTransactionsRequest:
+    postTransactionsB2bRequest:
       description: ''
-      required: []
       type: object
       properties:
-        accountFrom:
-          description: Sender'bank account
-          type: string
-        accountTo:
-          description: Receiver's bank account
-          type: string
-        amount:
-          format: int32
-          description: The sum
-          type: integer
-        explanation:
-          description: Purpose of the transaction
-          type: string
-        currency:
-          description: Currency of transaction
+        jwt:
+          description: >-
+            A JSON Web Token, containing the following payload:
+
+            {
+                "accountFrom": "xxx123456",
+                "accountTo": "yyy123456",
+                "currency": "GBP",
+                "amount": 101,
+                "explanation": "Raha nagu muda",
+                "senderName": "Jaana"
+            }, signed by the sending bank with its private key of which the public counterpart is
+            available at the bank's jwksUrl
           type: string
       example:
-        accountFrom: RU000000001
-        accountTo: BY000000002
-        amount: 15
-        currency: USD
-        explanation: Thank you mighty friend
-    postReceiverTransactionsResponse:
-      title: postReceiverTransactionsResponse
+        jwt: >-
+          eyJhbGciOiJSUzI1NiIsInR5cCI6IkpXVCJ9.eyJhY2NvdW50RnJvbSI6IjkwN2E0YjFmYTQzOTk5NDM1MTE1ZDc0OWMwZDRiYTNjOGRiIiwiYWNjb3VudFRvIjoiOGI5NzczMTNhNTRkNmRkZDcyZGVjODIwOWVhMjQ1MjE2N2IiLCJjdXJyZW5jeSI6IkVVUiIsImFtb3VudCI6MTExLCJleHBsYW5hdGlvbiI6InRlc3QiLCJzZW5kZXJOYW1lIjoiSmFhbmEifQ.QTVvvD6vd5yWAxvPQKwi_zZnvIYtUtrivVxhvL56cfavgMbLYTGhRmK_N7BQA4tBPq_5pe0uAJqn_AUIfvQf6Rprd3mpS8oyupNaD2tye45h8r2jf6JhibRgd9Z3iJBrWzJ51WjpJi9j8_t9RPCuMZujuO0OFubRjMiIvavEhefDjIw_2DKSNAlavijNoFHloaIglQ9De9YBVYq2ECtogSIVcBXgAW8E9CnRBkQCshJ17z405WaCqltlrqcyZM_aS-VC3FHD6GWFtdbuHiGIDOg1b1XkoNVQUUeNRyQ8zMffTHSNornkxkuVrnN13TTKsubWHd4_LuEUOVesFPsCYA
+    postTransactionsB2bResponse:
       description: ''
+      required:
+        - receiverName
       type: object
       properties:
         receiverName:
+          description: The name of the person to whom the accountTo account belongs to
           type: string
       example:
-        receiverName: Jaana Lind
+        receiverName: Jaana Šeffer
+    transactionObject:
+      title: transactionObject
+      description: ''
+      type: object
+      properties:
+        id:
+          description: Transaction ID
+          type: string
+        status:
+          description: '''pending'', ''inProgress'' or ''failed'''
+          type: string
+        amount:
+          description: Transfer sum
+          type: string
+        currency:
+          description: currency of amount
+          type: string
+        accountFrom:
+          description: Sender's account
+          type: string
+        accountTo:
+          description: Receiver's account
+          type: string
+        explanation:
+          description: Purpose of transaction
+          type: string
+        senderName:
+          type: string
+        createdAt:
+          format: date-time
+          description: Time when transaction was made
+          type: string
+        statusDetail:
+          type: string
+      example:
+        id: 5fa0f9bb1435848b0569d0ca
+        status: completed
+        amount: '101'
+        currency: EUR
+        accountFrom: 907642907a1266afdc8ea4ee2d7c7a6cab6
+        accountTo: 8b977313a54d6ddd72dec8209ea2452167b
+        explanation: Raha nagu muda
+        senderName: Jaana
+        createdAt: '2020-11-01T21:32:45.697+00:00'
+        statusDetail: ''
+    getTransactionResponse:
+      description: ''
+      type: object
   securitySchemes:
     Token:
       scheme: bearer
