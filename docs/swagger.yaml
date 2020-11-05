@@ -4,9 +4,6 @@ info:
   version: 1.0.0
 servers:
   -
-    url: 'http://localhost:1234'
-    description: ''
-  -
     url: 'https://jaanamairitbank.online'
     description: ''
 paths:

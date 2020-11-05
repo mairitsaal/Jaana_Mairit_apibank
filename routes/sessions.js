@@ -6,16 +6,16 @@ const { verifyToken } = require('../middleware')
 
 router.post('/', async (req, res, next) => {
 
-    // Get user by username from database
-    const user = await User.findOne({username: req.body.username})
-
-    if(req.body.password === " " || req.body.username === " ") {
+    // Validate username or password is not empty
+    if(!req.body.password || !req.body.username) {
         return res.status(400).json({error: "Username or password needed!"});
     }
 
+    // Get user by username from database
+    const user = await User.findOne({username: req.body.username})
+
     // Validate username and password
-    const passwordCheck = await bcrypt.compare(req.body.password, user.password);
-    if (!user || !passwordCheck) {
+    if (!user || !await bcrypt.compare(req.body.password, user.password)) {
         return res.status(401).json({error:"Invalid username/password"})
     }
 
