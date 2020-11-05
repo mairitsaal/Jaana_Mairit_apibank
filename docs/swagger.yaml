@@ -145,7 +145,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/getTransactionResponse'
+                $ref: '#/components/schemas/transactionObject'
           description: Transactions list received successfully.
         '401':
           content:
